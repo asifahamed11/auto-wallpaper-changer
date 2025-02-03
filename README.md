@@ -1,8 +1,8 @@
 # 🌟 Wallpaper Service - Automated Desktop Wallpaper Changer  
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)  
-[![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)](https://www.python.org/downloads/)  
-[![WallWidgy API](https://img.shields.io/badge/WallWidgy-API-orange)](https://www.wallwidgy.me/)  
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)](https://www.python.org/downloads/)
+[![WallWidgy API](https://img.shields.io/badge/WallWidgy-API-orange)](https://www.wallwidgy.me/)
 
 ## 🖼️ Overview  
 **Wallpaper Service** is a lightweight Windows application that automatically updates your desktop wallpaper with high-quality images at regular intervals.  
@@ -15,7 +15,7 @@
 
 ## 🔧 Installation & Usage  
 ### 1️⃣ Download the Executable  
-👉 **[Download Wallpaper Service](https://github.com/asifahamed11/auto-wallpaper-changer/blob/main/wallpaper_service.exe)**  
+👉 **[Download Wallpaper Service](https://raw.githubusercontent.com/asifahamed11/auto-wallpaper-changer/refs/heads/main/wallpaper_service.exe)**  
 
 ### 2️⃣ Run the Application  
 Simply double-click the downloaded `wallpaper_service.exe` file. It will start running in the background and change your wallpaper automatically.  
