@@ -1,121 +1,46 @@
-# Auto Wallpaper Changer Service
+# 🌟 Wallpaper Service - Automated Desktop Wallpaper Changer  
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)](https://www.python.org/downloads/)
-[![WallWidgy API](https://img.shields.io/badge/WallWidgy-API-orange)](https://www.wallwidgy.me/)
+![Wallpaper Service](image.png)  
 
-A Windows service that automatically updates your desktop wallpaper at set intervals using the WallWidgy API. Keep your desktop fresh with minimal effort!
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)  
+[![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)](https://www.python.org/downloads/)  
+[![WallWidgy API](https://img.shields.io/badge/WallWidgy-API-orange)](https://www.wallwidgy.me/)  
 
-## Features
+## 🖼️ Overview  
+**Wallpaper Service** is a lightweight Windows application that automatically updates your desktop wallpaper with high-quality images at regular intervals.  
 
-- Automatic wallpaper updates at configurable intervals
-- Customizable image tags and resolutions via WallWidgy API
-- Runs silently in the background as a Windows Service
-- Simple configuration and setup
-- Built-in error logging for easy troubleshooting
+## 🚀 Features  
+- 🔄 **Auto Wallpaper Change:** Updates your desktop background every hour.  
+- 🎯 **High-Resolution Wallpapers:** Supports 1080p, 1440p, 4K, and 8K.  
+- 💾 **Wallpaper History:** Saves recent wallpapers and removes old ones.  
+- 🖥️ **Auto Startup:** Runs automatically when Windows starts.  
 
-## Prerequisites
+## 🔧 Installation & Usage  
+### 1️⃣ Download the Executable  
+👉 **[Download Wallpaper Service](YOUR_DOWNLOAD_LINK_HERE)**  
 
-- Python 3.6 or higher
-- Windows Operating System
-- Administrator privileges for service installation
+### 2️⃣ Run the Application  
+Simply double-click the downloaded `wallpaper_service.exe` file. It will start running in the background and change your wallpaper automatically.  
 
-## Quick Start
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/asifahamed11/auto-wallpaper-changer.git
-   cd auto-wallpaper-changer
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure settings**
-   Open `change_wallpaper.py` and adjust the configuration:
-   ```python
-   API_ENDPOINT = "https://www.wallwidgy.me/api/random-wallpapers"
-   TAGS = ["desktop"]  # Options: "desktop", "mobile", "recent"
-   RESOLUTIONS = ["1080p", "1440p", "4k"]  # Options: "1080p", "1440p", "4k", "8k"
-   SAVE_DIRECTORY = r"C:\Users\Admin\Pictures\Wallpapers"
-   ```
-
-## Service Management
-
-### Installation
-
-Open an administrative Command Prompt and run:
-```bash
-python change_wallpaper.py install
+### 3️⃣ Enable Auto Startup (Optional)  
+To ensure the wallpaper changes automatically every time you start your PC, move the `wallpaper_service.exe` file to the Windows startup folder:  
+📂 **Move it to:**  
 ```
-
-### Basic Commands
-
-```bash
-# Start the service
-python change_wallpaper.py start
-
-# Stop the service
-python change_wallpaper.py stop
-
-# Remove the service
-python change_wallpaper.py remove
+C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup
 ```
+This allows the app to start automatically when Windows boots up.  
 
-## Auto-Start Configuration
+## 📷 Preview  
+![Preview](image.png)  
 
-### Using Services Manager (Recommended)
-1. Press `Win + R`, type `services.msc`, and press Enter
-2. Find "Wallpaper Changer Service"
-3. Right-click → Properties
-4. Set "Startup type" to "Automatic"
-5. Click Apply → OK
+## 🖥️ Supported Platforms  
+✅ **Windows** (Tested on Windows 10/11)  
 
-### Using Command Prompt
-```bash
-# Run as Administrator
-sc config "WallpaperChangerService" start=auto
-```
+## 📜 License  
+This project is licensed under the **[MIT License](https://opensource.org/licenses/MIT)**.  
 
-## Troubleshooting
+## 💬 Connect with Me  
+👤 **Asif Ahamed**  
+📧 [asifahamedstudent@gmail.com](mailto:asifahamedstudent@gmail.com)  
+🐙 [GitHub: @asifahamed11](https://github.com/asifahamed11)  
 
-1. **Service Not Starting?**
-   - Verify Python installation
-   - Check Windows Event Viewer for errors
-   - Ensure you have admin privileges
-
-2. **No Wallpaper Changes?**
-   - Confirm internet connectivity
-   - Verify API endpoint accessibility
-   - Check save directory permissions
-
-## Dependencies
-
-```plaintext
-requests==2.31.0
-pywin32==306
-```
-
-## Contributing
-
-Contributions are welcome! Here's how you can help:
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-- **Developer**: Asif Ahamed
-- **Email**: asifahamedstudent@gmail.com
-- **GitHub**: [@asifahamed11](https://github.com/asifahamed11)
-
----
-
-💡 **Pro Tip**: Set the service to "Automatic (Delayed Start)" if you experience any startup conflicts with other services.
