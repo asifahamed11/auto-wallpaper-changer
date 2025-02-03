@@ -32,7 +32,7 @@ This allows the app to start automatically when Windows boots up.
 ✅ **Windows** (Tested on Windows 10/11)  
 
 ## 📜 License  
-This project is licensed under the **[MIT License](https://opensource.org/licenses/MIT)**.  
+This project is licensed under the **[MIT License](https://github.com/asifahamed11/auto-wallpaper-changer/blob/4f084c7edf034b15050f5c166ade7a085a8df633/LICENSE)**.  
 
 ## 💬 Connect with Me  
 👤 **Asif Ahamed**  
