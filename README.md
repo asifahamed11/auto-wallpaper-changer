@@ -15,7 +15,7 @@
 
 ## 🔧 Installation & Usage  
 ### 1️⃣ Download the Executable  
-👉 **[Download Wallpaper Service](https://raw.githubusercontent.com/asifahamed11/auto-wallpaper-changer/refs/heads/main/wallpaper_service.exe)**  
+👉 **[Download Wallpaper Service](https://raw.githubusercontent.com/asifahamed11/auto-wallpaper-changer/refs/heads/main/dist/wallpaper_service.exe)**  
 
 ### 2️⃣ Run the Application  
 Simply double-click the downloaded `wallpaper_service.exe` file. It will start running in the background and change your wallpaper automatically.  
