@@ -109,8 +109,8 @@ def set_wallpaper(file_path):
     
     try:
         if system == 'windows':
-            # Windows wallpaper setting
-            ctypes.windll.user32.SystemParametersInfoW(20, 0, file_path, 0)
+            # Update with persistence flags (3 = SPIF_UPDATEINIFILE | SPIF_SENDCHANGE)
+            ctypes.windll.user32.SystemParametersInfoW(20, 0, file_path, 3)
         elif system == 'darwin':  # macOS
             script = f'tell application "System Events" to set picture of every desktop to "{file_path}"'
             subprocess.run(['osascript', '-e', script])
