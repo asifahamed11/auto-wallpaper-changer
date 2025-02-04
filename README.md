@@ -1,5 +1,4 @@
 # 🌟 Wallpaper Service - Automated Desktop Wallpaper Changer  
-
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)](https://www.python.org/downloads/)
 [![WallWidgy API](https://img.shields.io/badge/WallWidgy-API-orange)](https://www.wallwidgy.me/)
@@ -8,34 +7,81 @@
 **Wallpaper Service** is a lightweight Windows application that automatically updates your desktop wallpaper with high-quality images at regular intervals.  
 
 ## 🚀 Features  
-- 🔄 **Auto Wallpaper Change:** Updates your desktop background every hour.  
-- 🎯 **High-Resolution Wallpapers:** Supports 1080p, 1440p, 4K, and 8K.  
-- 💾 **Wallpaper History:** Saves recent wallpapers and removes old ones.  
-- 🖥️ **Auto Startup:** Runs automatically when Windows starts.  
+- 🔄 **Auto Wallpaper Change:** Updates your desktop background every hour  
+- 🎯 **High-Resolution Wallpapers:** Supports 1080p, 1440p, 4K, and 8K  
+- 💾 **Wallpaper History:** Saves recent wallpapers in `~/WallwidgyWallpapers/`  
+- 🖥️ **Multi-Platform Support:** Works on Windows, macOS, and Linux  
 
-## 🔧 Installation & Usage  
-### 1️⃣ Download the Executable  
-👉 **[Download Wallpaper Service](https://raw.githubusercontent.com/asifahamed11/auto-wallpaper-changer/refs/heads/main/dist/wallpaper_service.exe)**  
+## 🔧 Detailed Installation
 
-### 2️⃣ Run the Application  
-Simply double-click the downloaded `wallpaper_service.exe` file. It will start running in the background and change your wallpaper automatically.  
+### Prerequisites
+- Python 3.7+
+- Windows 10/11
+- Internet Connection
 
-### 3️⃣ Enable Auto Startup (Optional)  
-To ensure the wallpaper changes automatically every time you start your PC, move the `wallpaper_service.exe` file to the Windows startup folder:  
-📂 **Move it to:**  
+### 1. Install Python
+1. Download from [python.org](https://www.python.org/downloads/)
+2. **IMPORTANT**: Check "Add Python to PATH" during installation
+3. Verify with `python --version` in Command Prompt
+
+### 2. Install Required Library
+```bash
+pip install requests
 ```
-C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup
-```
-This allows the app to start automatically when Windows boots up.  
+
+### 3. Task Scheduler Configuration
+
+#### Precise Setup Steps:
+1. Open Task Scheduler
+   - Press `Win + R`
+   - Type `taskschd.msc`
+   - Press Enter
+
+2. In Task Scheduler Library
+   - Click "Create Task" (not "Create Basic Task")
+   - Name: "Wallpaper Changer"
+
+3. Task Configuration
+   - **General Tab:**
+     * Run with highest privileges ✓
+     * Configure for: Windows 10/11
+
+   - **Triggers Tab:**
+     * New Trigger
+     * Daily
+     * Repeat every: 1 hour
+     * Duration: Indefinitely
+
+   - **Conditions Tab:**
+     * Start only if on AC power ✓
+     * Stop if battery mode ✓
+
+   - **Actions Tab:**
+     * Action: Start a program
+     * Program/Script: Path to `run_wallpaper_changer.bat`
+
+4. Click "OK" and enter credentials if prompted
+
+## 🛠️ Troubleshooting
+- Python not found: Reinstall, ensure "Add to PATH"
+- No wallpapers: Check internet connection
+- Check logs: `~/WallwidgyWallpapers/logs/wallpaper_changer.log`
+
+## 💡 Customization
+Edit `wallpaper_changer.py` to:
+- Change resolution preferences
+- Modify download locations
+- Add specific wallpaper tags
 
 ## 🖥️ Supported Platforms  
-✅ **Windows** (Tested on Windows 10/11)  
+✅ Windows 10/11
+✅ macOS
+✅ Linux (Gnome, KDE)
 
 ## 📜 License  
-This project is licensed under the **[MIT License](https://github.com/asifahamed11/auto-wallpaper-changer/blob/4f084c7edf034b15050f5c166ade7a085a8df633/LICENSE)**.  
+MIT License
 
-## 💬 Connect with Me  
+## 💬 Connect
 👤 **Asif Ahamed**  
 📧 [asifahamedstudent@gmail.com](mailto:asifahamedstudent@gmail.com)  
-🐙 [GitHub: @asifahamed11](https://github.com/asifahamed11)  
-
+🐙 [GitHub](https://github.com/asifahamed11)
