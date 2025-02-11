@@ -17,6 +17,7 @@ class WallpaperManager:
         self.images_dir = os.path.join(self.base_dir, 'images')
         self.logs_dir = os.path.join(self.base_dir, 'logs')
         self.history_file = os.path.join(self.base_dir, 'wallpaper_history.json')
+        self.max_images = 2  # Maximum number of images to keep
         
         # Create directory structure
         self._create_directory_structure()
@@ -28,6 +29,31 @@ class WallpaperManager:
         self.used_wallpapers = self._load_history()
         
         logging.info("WallpaperManager initialized successfully")
+
+    def _cleanup_old_images(self):
+        """Delete old wallpaper images while keeping the most recent ones."""
+        try:
+            # Get list of all wallpaper files with their creation times
+            wallpapers = []
+            for filename in os.listdir(self.images_dir):
+                if filename.startswith('wallpaper_'):
+                    file_path = os.path.join(self.images_dir, filename)
+                    creation_time = os.path.getctime(file_path)
+                    wallpapers.append((file_path, creation_time))
+            
+            # Sort wallpapers by creation time (newest first)
+            wallpapers.sort(key=lambda x: x[1], reverse=True)
+            
+            # Delete all but the most recent files
+            for file_path, _ in wallpapers[self.max_images:]:
+                try:
+                    os.remove(file_path)
+                    logging.info(f"Deleted old wallpaper: {file_path}")
+                except Exception as e:
+                    logging.error(f"Error deleting wallpaper {file_path}: {e}")
+                    
+        except Exception as e:
+            logging.error(f"Error during cleanup: {e}")
 
     def _create_directory_structure(self):
         """Create necessary directories if they don't exist."""
@@ -83,7 +109,7 @@ class WallpaperManager:
     def get_random_wallpaper(self):
         """Fetch a random wallpaper that hasn't been used before."""
         resolutions = ['1080p', '1440p', '4k', '8k']
-        max_attempts = 10
+        max_attempts = 20
         
         for attempt in range(max_attempts):
             resolution = random.choice(resolutions)
@@ -123,8 +149,14 @@ class WallpaperManager:
                 logging.error(f"Error fetching wallpaper: {e}")
                 continue
         
-        logging.error("Failed to find unused wallpaper after maximum attempts")
-        return None
+        # If no new wallpaper found, pick randomly from history
+        if self.used_wallpapers:
+            random_wallpaper = random.choice(self.used_wallpapers)
+            logging.info(f"Using random wallpaper from history: {random_wallpaper}")
+            return random_wallpaper
+        else:
+            logging.error("No wallpapers in history and failed to fetch new ones")
+            return None
 
     def download_wallpaper(self, url):
         """Download the wallpaper from the given URL."""
@@ -142,6 +174,10 @@ class WallpaperManager:
                     file.write(chunk)
             
             logging.info(f"Wallpaper downloaded: {full_path}")
+            
+            # Clean up old images after downloading a new one
+            self._cleanup_old_images()
+            
             return full_path
         
         except Exception as e:
@@ -202,7 +238,9 @@ def main():
         
         # Set wallpaper
         if manager.set_wallpaper(wallpaper_path):
-            manager.add_wallpaper(wallpaper_url)
+            # Only add to history if it's a new wallpaper
+            if not manager.is_wallpaper_used(wallpaper_url):
+                manager.add_wallpaper(wallpaper_url)
             logging.info("Wallpaper change completed successfully")
         else:
             logging.error("Failed to set wallpaper.")
