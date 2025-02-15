@@ -1,8 +1,7 @@
 # 🌄 Auto Wallpaper Changer (Windows)
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)  
-[![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)](https://www.python.org/downloads/)  
-[![WallWidgy API](https://img.shields.io/badge/WallWidgy-API-orange)](https://www.wallwidgy.me/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Python Version](https://img.shields.io/badge/Python-3.6%2B-blue)](https://www.python.org/downloads/) [![WallWidgy API](https://img.shields.io/badge/WallWidgy-API-orange)](https://www.wallwidgy.me/)
+
 
 ## 📌 Overview
 **Auto Wallpaper Changer** is a Windows-exclusive utility that automatically fetches high-quality wallpapers from the **WallWidgy API** and updates your desktop background silently. Designed as a one-click solution, this tool ensures no wallpaper is repeated, stores images in a dedicated folder, and logs all operations for easy troubleshooting.
@@ -30,8 +29,3 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 **Asif Ahamed**  
 📧 [asifahamedstudent@gmail.com](mailto:asifahamedstudent@gmail.com)  
 🐙 [GitHub](https://github.com/asifahamed11)
-```
-
----
-
-This README provides users with a clear overview of the tool, its features, and how to use it as a one-click, silent solution for changing wallpapers on Windows.
