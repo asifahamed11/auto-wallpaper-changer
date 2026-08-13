@@ -1,39 +1,31 @@
-# Auto Wallpaper Changer v2
+# Auto Wallpaper Changer
 
-A tray-first Windows wallpaper companion powered by Wallwidgy. It can change wallpapers on demand or on a schedule, filter by category and color, work across multiple monitors, and recover gracefully when the network is unavailable.
+A lightweight Windows app for discovering, applying, and automatically rotating wallpapers from Wallwidgy.
 
-> The old `wallwidgy.me/api/random-wallpapers` integration is retired. v2 follows the current [Wallwidgy API documentation](https://wallwidgy.app/api) and uses the metadata-rich [Wallwidgy storage index](https://raw.githubusercontent.com/not-ayan/storage/main/index.json) as a gallery and fallback source.
+[![CI](https://github.com/asifahamed11/auto-wallpaper-changer/actions/workflows/ci.yml/badge.svg)](https://github.com/asifahamed11/auto-wallpaper-changer/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/asifahamed11/auto-wallpaper-changer?display_name=tag)](https://github.com/asifahamed11/auto-wallpaper-changer/releases)
+[![License](https://img.shields.io/github/license/asifahamed11/auto-wallpaper-changer)](LICENSE)
 
-## Highlights
+## Features
 
-- Current Wallwidgy REST API support with schema and content-type validation
-- Raw-index fallback and offline wallpaper cache
-- System tray actions: Change now, Undo, Favorite, Block, Pause, Settings
-- Scheduled rotation through Windows Task Scheduler; the UI does not need to stay open
-- Random, category, color, and favorites rotation modes
-- Searchable preview gallery with category, color, and orientation filters
-- Lightweight native navigation, smooth page transitions, responsive previews, and debounced search
-- Painter-antialiased cards, controls, buttons, gallery tiles, and genuinely clipped rounded previews
-- Subtle fade/slide, hover spotlight, selection, press, and status motion inspired by [React Bits](https://reactbits.dev/)
-- Automatic accent-button contrast, readable Discover filters, and a confirmed Reset all settings action
-- Lazy settings-window creation keeps tray-only startup fast and avoids loading the full UI until needed
-- Per-monitor, all-monitor, or different-wallpaper-per-monitor modes
-- Fill, fit, stretch, center, tile, and span positioning
-- English and বাংলা UI, light/dark/system themes, and wallpaper-derived accent color
-- Bounded SQLite history, rotating logs, diagnostics export, and update checks
-- HTTPS-only downloads with trusted-host, MIME, size, and image-decoding validation
+- Change wallpapers instantly or on a schedule
+- Browse by search, category, color, and orientation
+- Use one wallpaper across displays or a different one per monitor
+- Undo, favorite, block, pause, and resume from the system tray
+- Continue with cached wallpapers when the network is unavailable
+- Choose light, dark, or system theme with wallpaper-derived accents
+- Use the interface in English or বাংলা
+- Keep local history, diagnostics, and cache within sensible limits
 
-## Install
+## Download
 
-### Recommended
+Download the latest installer or portable build from [GitHub Releases](https://github.com/asifahamed11/auto-wallpaper-changer/releases).
 
-Download `AutoWallpaperChanger.exe` or the installer from [GitHub Releases](https://github.com/asifahamed11/auto-wallpaper-changer/releases). Verify it with the accompanying `.sha256` file.
+Windows 10/11 is supported. Normal use does not require administrator permission. Automatic rotation and **Start with Windows** remain disabled until you enable them.
 
-The first launch opens Settings. Automatic rotation and **Start with Windows** are opt-in; the app never enables them silently.
+## Run from source
 
-### Run from source
-
-Requirements: Windows 10/11 and Python 3.11 or newer.
+Requires Python 3.11 or newer.
 
 ```powershell
 python -m venv .venv
@@ -43,7 +35,7 @@ python tools\build_assets.py
 python -m wallpaper_changer
 ```
 
-Headless commands:
+Useful commands:
 
 ```powershell
 python -m wallpaper_changer --change-now
@@ -51,63 +43,20 @@ python -m wallpaper_changer --diagnostics
 python -m wallpaper_changer --version
 ```
 
-## Using the app
-
-The tray menu provides fast actions without opening a full window. The settings window contains:
-
-- **Home:** current preview, Change now, Undo, Favorite, Block, and the next-change timer.
-- **Discover:** search, filters, preview gallery, and direct apply/favorite actions.
-- **Automation:** interval, rotation mode, display target, image position, pause, startup behavior, and its own Save action.
-- **Settings:** theme, language, notifications, cache limits, connection test, updates, and diagnostics.
-
-**Reset all settings** restores configuration defaults and disables configured startup/schedule integrations;
-downloaded wallpapers, favorites, and history are preserved.
-
-Downloaded data is stored under:
-
-```text
-%LOCALAPPDATA%\AutoWallpaperChanger\
-  settings.json
-  wallpapers.sqlite3
-  cache\
-  logs\
-  diagnostics\
-```
-
-No administrator permission is required for normal operation.
-
 ## Development
 
 ```powershell
-python -m ruff check src tests
+python -m ruff check src tests tools
 python -m pytest -m "not live"
-python -m pytest tests\test_live_api.py -m live
-```
-
-The UI action suite runs offscreen and verifies the window and tray controls, loading/failure recovery,
-filter debounce, Automation persistence, connection checks, updates, diagnostics, and folder actions.
-Pixel-level widget tests also verify transparent outer corners, preview clipping, motion states, and
-custom combo/spin interaction.
-
-Build a portable executable and, when Inno Setup is installed, an installer:
-
-```powershell
 .\tools\Build-Release.ps1
 ```
 
-The release pipeline adds product/version metadata and SHA-256 checksums. Authenticode signing is enabled in GitHub Actions when the repository's certificate secrets are configured.
+Application data is stored in `%LOCALAPPDATA%\AutoWallpaperChanger`. Resetting settings does not delete downloaded wallpapers, favorites, or history.
 
-See [architecture](docs/ARCHITECTURE.md), [privacy](PRIVACY.md), [security](SECURITY.md), [contributing](CONTRIBUTING.md), and the [changelog](CHANGELOG.md).
-Third-party runtime licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+## Project notes
 
-## API and attribution
+Wallpapers are provided by the [Wallwidgy API](https://wallwidgy.app/api) and its [storage index](https://github.com/not-ayan/storage). This repository is an independent Windows client.
 
-Wallpaper discovery and images are supplied by Wallwidgy and its storage repository. This project is an independent Windows client. Confirm upstream terms before redistributing third-party wallpaper assets or copying upstream source code.
+See the [changelog](CHANGELOG.md), [privacy policy](PRIVACY.md), [security policy](SECURITY.md), and [architecture](docs/ARCHITECTURE.md) for more information.
 
-## License
-
-This project is available under the [MIT License](LICENSE).
-
-## Author
-
-Asif Ahamed — [GitHub](https://github.com/asifahamed11) — [email](mailto:asifahamedstudent@gmail.com)
+Licensed under the [MIT License](LICENSE). Created by [Asif Ahamed](https://github.com/asifahamed11).
