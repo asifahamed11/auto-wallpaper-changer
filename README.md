@@ -13,6 +13,9 @@ A tray-first Windows wallpaper companion powered by Wallwidgy. It can change wal
 - Random, category, color, and favorites rotation modes
 - Searchable preview gallery with category, color, and orientation filters
 - Lightweight native navigation, smooth page transitions, responsive previews, and debounced search
+- Painter-antialiased cards, controls, buttons, gallery tiles, and genuinely clipped rounded previews
+- Subtle fade/slide, hover spotlight, selection, press, and status motion inspired by [React Bits](https://reactbits.dev/)
+- Automatic accent-button contrast, readable Discover filters, and a confirmed Reset all settings action
 - Lazy settings-window creation keeps tray-only startup fast and avoids loading the full UI until needed
 - Per-monitor, all-monitor, or different-wallpaper-per-monitor modes
 - Fill, fit, stretch, center, tile, and span positioning
@@ -57,6 +60,9 @@ The tray menu provides fast actions without opening a full window. The settings 
 - **Automation:** interval, rotation mode, display target, image position, pause, startup behavior, and its own Save action.
 - **Settings:** theme, language, notifications, cache limits, connection test, updates, and diagnostics.
 
+**Reset all settings** restores configuration defaults and disables configured startup/schedule integrations;
+downloaded wallpapers, favorites, and history are preserved.
+
 Downloaded data is stored under:
 
 ```text
@@ -80,6 +86,8 @@ python -m pytest tests\test_live_api.py -m live
 
 The UI action suite runs offscreen and verifies the window and tray controls, loading/failure recovery,
 filter debounce, Automation persistence, connection checks, updates, diagnostics, and folder actions.
+Pixel-level widget tests also verify transparent outer corners, preview clipping, motion states, and
+custom combo/spin interaction.
 
 Build a portable executable and, when Inno Setup is installed, an installer:
 

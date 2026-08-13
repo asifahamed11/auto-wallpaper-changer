@@ -109,6 +109,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "select_wallpaper": "Select a wallpaper to enable these actions",
         "filter_hint": "Results update while you type",
         "automation_hint": "Windows handles the schedule even when this window is closed.",
+        "reset_settings": "Reset all settings",
+        "reset_confirm": "Reset every setting to its default value? Your wallpapers, favorites and history will be kept.",
+        "reset_done": "All settings were reset to defaults",
     },
     "bn": {
         "app_name": "অটো ওয়ালপেপার চেঞ্জার",
@@ -218,6 +221,9 @@ STRINGS: dict[str, dict[str, str]] = {
         "select_wallpaper": "অ্যাকশন চালু করতে একটি ওয়ালপেপার বেছে নিন",
         "filter_hint": "টাইপ করার সঙ্গে ফলাফল আপডেট হবে",
         "automation_hint": "এই উইন্ডো বন্ধ থাকলেও Windows নির্ধারিত সময়ে কাজ করবে।",
+        "reset_settings": "সব সেটিংস রিসেট করুন",
+        "reset_confirm": "সব সেটিংস ডিফল্ট অবস্থায় ফিরিয়ে নেবেন? আপনার ওয়ালপেপার, পছন্দ ও হিস্ট্রি রাখা হবে।",
+        "reset_done": "সব সেটিংস ডিফল্ট অবস্থায় ফিরেছে",
     },
 }
 

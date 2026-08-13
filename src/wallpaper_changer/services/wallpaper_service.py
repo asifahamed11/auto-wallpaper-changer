@@ -250,16 +250,33 @@ class WallpaperService:
             monitor_id = settings.monitor_id if settings.target_mode == "specific" else None
             previous = self.platform.get_current(monitor_id)
             self.platform.set_wallpaper(path, monitor_id=monitor_id, position=settings.wallpaper_position)
+            wallpaper = Wallpaper(
+                id=item.wallpaper_id,
+                url=item.url,
+                title=item.title,
+                category=item.category,
+                source="offline",
+            )
+            self.history.record(
+                wallpaper,
+                local_path=path,
+                previous_path=previous,
+                success=True,
+                monitor_id=monitor_id or "",
+            )
+            changes: dict[str, object] = {
+                "last_changed_at": datetime.now(UTC).isoformat(),
+                "last_wallpaper_id": wallpaper.id,
+                "last_wallpaper_path": str(path),
+            }
+            if settings.derive_accent_from_wallpaper:
+                changes["accent_color"] = self.downloader.dominant_color(path)
+            self.settings_store.save(**changes)
+            self.history.trim(settings.max_history_items)
             return ChangeResult(
                 True,
                 "Offline wallpaper applied",
-                Wallpaper(
-                    id=item.wallpaper_id,
-                    url=item.url,
-                    title=item.title,
-                    category=item.category,
-                    source="offline",
-                ),
+                wallpaper,
                 path,
                 previous,
             )
@@ -280,10 +297,15 @@ class WallpaperService:
         self.platform.set_wallpaper(previous, monitor_id=monitor_id, position=settings.wallpaper_position)
         wallpaper = Wallpaper.from_url(previous.as_uri(), source="undo")
         self.history.record(wallpaper, local_path=previous, previous_path=current, success=True)
+        changes: dict[str, object] = {
+            "last_changed_at": datetime.now(UTC).isoformat(),
+            "last_wallpaper_id": wallpaper.id,
+            "last_wallpaper_path": str(previous),
+        }
+        if settings.derive_accent_from_wallpaper:
+            changes["accent_color"] = self.downloader.dominant_color(previous)
         self.settings_store.save(
-            last_changed_at=datetime.now(UTC).isoformat(),
-            last_wallpaper_id=wallpaper.id,
-            last_wallpaper_path=str(previous),
+            **changes,
         )
         return ChangeResult(
             True, "Previous wallpaper restored", wallpaper=wallpaper, path=previous, previous_path=current

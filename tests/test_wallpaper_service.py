@@ -42,8 +42,8 @@ class FakeDownloader:
             height=1080,
         )
 
-    def dominant_color(self, _path):
-        return "#123456"
+    def dominant_color(self, path):
+        return "#654321" if Path(path).name == "previous.png" else "#123456"
 
     def cleanup(self, *_args, **_kwargs):
         self.cleaned = True
@@ -95,3 +95,4 @@ def test_change_and_undo_are_recorded(tmp_path):
     undo = service.undo()
     assert undo.success
     assert platform.applied[-1][0] == previous
+    assert store.settings.accent_color == "#654321"

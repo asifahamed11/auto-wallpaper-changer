@@ -23,10 +23,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QProgressBar,
-    QPushButton,
+    QScrollArea,
     QSizePolicy,
-    QSpinBox,
-    QStatusBar,
     QVBoxLayout,
     QWidget,
 )
@@ -40,8 +38,17 @@ from wallpaper_changer.platform.windows_wallpaper import open_path
 from wallpaper_changer.resources import asset_path
 from wallpaper_changer.services.scheduler import SchedulerError
 from wallpaper_changer.services.startup import StartupError
-from wallpaper_changer.ui.styles import stylesheet
-from wallpaper_changer.ui.widgets import FadeStackedWidget
+from wallpaper_changer.ui.styles import stylesheet, theme_colors
+from wallpaper_changer.ui.widgets import (
+    AnimatedButton,
+    AnimatedStatusBar,
+    FadeStackedWidget,
+    RoundedComboBox,
+    RoundedLabel,
+    RoundedPanel,
+    RoundedSpinBox,
+    WallpaperItemDelegate,
+)
 from wallpaper_changer.ui.workers import FunctionWorker
 
 LOGGER = logging.getLogger("wallpaper_changer.ui")
@@ -66,8 +73,10 @@ class SettingsWindow(QMainWindow):
         self._catalog_generation = 0
         self._preview_pixmap = QPixmap()
         self._preview_path: Path | None = None
+        self._pending_settings_message = ""
         self._first_show = True
         self._window_animation: QPropertyAnimation | None = None
+        self._applied_accent: str | None = None
 
         self._catalog_timer = QTimer(self)
         self._catalog_timer.setSingleShot(True)
@@ -96,7 +105,8 @@ class SettingsWindow(QMainWindow):
         root_layout.setContentsMargins(14, 14, 14, 10)
         root_layout.setSpacing(20)
 
-        navigation = QFrame(objectName="NavRail")
+        navigation = RoundedPanel(radius=18, role="surface")
+        navigation.setObjectName("NavRail")
         navigation.setFixedWidth(194)
         nav_layout = QVBoxLayout(navigation)
         nav_layout.setContentsMargins(14, 18, 14, 14)
@@ -104,7 +114,8 @@ class SettingsWindow(QMainWindow):
 
         brand = QHBoxLayout()
         brand.setSpacing(10)
-        brand_icon = QLabel(objectName="BrandMark")
+        brand_icon = RoundedLabel(radius=10, role="accent", border=False)
+        brand_icon.setObjectName("BrandMark")
         brand_icon.setFixedSize(38, 38)
         brand_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon = QPixmap(str(asset_path("icon.svg")))
@@ -121,9 +132,10 @@ class SettingsWindow(QMainWindow):
         nav_layout.addLayout(brand)
         nav_layout.addSpacing(18)
 
-        self.nav_buttons: list[QPushButton] = []
+        self.nav_buttons: list[AnimatedButton] = []
         for index, key in enumerate(("home", "discover", "automation", "settings")):
-            button = QPushButton(self.translator(key), objectName="NavButton")
+            button = AnimatedButton(self.translator(key), role="nav")
+            button.setObjectName("NavButton")
             button.setCheckable(True)
             button.setAutoExclusive(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -133,7 +145,9 @@ class SettingsWindow(QMainWindow):
             self.nav_buttons.append(button)
             nav_layout.addWidget(button)
         nav_layout.addStretch()
-        self.nav_status = QLabel(objectName="StatusPill")
+        self.nav_status = RoundedLabel(radius=9, role="pill")
+        self.nav_status.setObjectName("StatusPill")
+        self.nav_status.setContentsMargins(10, 7, 10, 7)
         self.nav_status.setWordWrap(True)
         nav_layout.addWidget(self.nav_status)
         nav_layout.addWidget(QLabel(f"v{__version__}  •  Windows", objectName="Muted"))
@@ -168,7 +182,7 @@ class SettingsWindow(QMainWindow):
         root_layout.addWidget(content, 1)
         self.setCentralWidget(root)
 
-        self.status = QStatusBar()
+        self.status = AnimatedStatusBar()
         self.status.setSizeGripEnabled(False)
         self.status.showMessage(self.translator("status_ready"))
         self.setStatusBar(self.status)
@@ -181,9 +195,12 @@ class SettingsWindow(QMainWindow):
         layout.setSpacing(14)
 
         preview_card, preview_layout = self._card(self.translator("current_wallpaper"))
-        self.preview = QLabel("WALLWIDGY", objectName="Preview")
+        self.preview = RoundedLabel("WALLWIDGY", radius=13, role="inset")
+        self.preview.setObjectName("Preview")
         self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview.setMinimumHeight(300)
+        # The preview expands into spare space, but must be able to yield height when the
+        # progress bar appears so it never collides with the metadata and action rows.
+        self.preview.setMinimumHeight(170)
         self.preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         preview_layout.addWidget(self.preview, 1)
 
@@ -201,14 +218,17 @@ class SettingsWindow(QMainWindow):
         details.addWidget(self.change_button)
         preview_layout.addLayout(details)
 
-        actions = QHBoxLayout()
-        actions.setSpacing(8)
+        actions = QGridLayout()
+        actions.setHorizontalSpacing(8)
+        actions.setVerticalSpacing(8)
         self.undo_button = self._button(self.translator("undo"), shortcut="Ctrl+Z")
         self.favorite_button = self._button(self.translator("favorite"))
         self.block_button = self._button(self.translator("never_show"), "Danger")
-        for button in (self.undo_button, self.favorite_button, self.block_button):
-            actions.addWidget(button)
-        actions.addStretch()
+        actions.addWidget(self.undo_button, 0, 0)
+        actions.addWidget(self.favorite_button, 0, 1)
+        actions.addWidget(self.block_button, 1, 0, 1, 2)
+        actions.setColumnStretch(0, 1)
+        actions.setColumnStretch(1, 1)
         preview_layout.addLayout(actions)
         layout.addWidget(preview_card, 1)
 
@@ -255,6 +275,9 @@ class SettingsWindow(QMainWindow):
         self.category_combo = self._combo(CATEGORIES)
         self.color_combo = self._combo(COLORS)
         self.orientation_combo = self._combo(["desktop", "mobile", "all"])
+        self.category_combo.setMinimumWidth(148)
+        self.color_combo.setMinimumWidth(126)
+        self.orientation_combo.setMinimumWidth(132)
         self.category_combo.setAccessibleName(self.translator("category"))
         self.color_combo.setAccessibleName(self.translator("color"))
         self.orientation_combo.setAccessibleName(self.translator("orientation"))
@@ -279,6 +302,8 @@ class SettingsWindow(QMainWindow):
         self.catalog.setUniformItemSizes(True)
         self.catalog.setMouseTracking(True)
         self.catalog.setAccessibleName("Wallpaper gallery")
+        self.catalog_delegate = WallpaperItemDelegate(self.catalog)
+        self.catalog.setItemDelegate(self.catalog_delegate)
         layout.addWidget(self.catalog, 1)
 
         actions = QHBoxLayout()
@@ -309,6 +334,10 @@ class SettingsWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 8, 0, 0)
         layout.setSpacing(14)
+        content = QWidget(objectName="ScrollContent")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(14)
         rotation_card, rotation_layout = self._card(self.translator("rotation"))
         hint = QLabel(self.translator("automation_hint"), objectName="Muted")
         hint.setWordWrap(True)
@@ -319,7 +348,7 @@ class SettingsWindow(QMainWindow):
         form.setHorizontalSpacing(28)
         form.setVerticalSpacing(12)
         self.rotation_enabled = QCheckBox(self.translator("rotation"))
-        self.interval_combo = QComboBox()
+        self.interval_combo = RoundedComboBox()
         for label, minutes in (
             ("15 minutes", 15),
             ("30 minutes", 30),
@@ -334,7 +363,7 @@ class SettingsWindow(QMainWindow):
         self.rotation_category_combo = self._combo(CATEGORIES)
         self.rotation_color_combo = self._combo(COLORS)
         self.target_mode_combo = self._combo(["all", "specific", "different"])
-        self.monitor_combo = QComboBox()
+        self.monitor_combo = RoundedComboBox()
         self.position_combo = self._combo(["fill", "fit", "stretch", "center", "tile", "span"])
         self.startup_enabled = QCheckBox(self.translator("start_windows"))
         self.change_at_startup = QCheckBox(self.translator("change_at_startup"))
@@ -352,17 +381,21 @@ class SettingsWindow(QMainWindow):
         form.addRow(self.translator("run_on_battery"), self.run_on_battery)
         rotation_layout.addLayout(form)
 
-        pause_row = QHBoxLayout()
+        pause_row = QGridLayout()
+        pause_row.setHorizontalSpacing(8)
+        pause_row.setVerticalSpacing(8)
         self.pause_hour_button = self._button(self.translator("pause_1h"))
         self.pause_today_button = self._button(self.translator("pause_today"))
         self.resume_button = self._button(self.translator("resume"), "Quiet")
-        pause_row.addWidget(self.pause_hour_button)
-        pause_row.addWidget(self.pause_today_button)
-        pause_row.addWidget(self.resume_button)
-        pause_row.addStretch()
+        pause_row.addWidget(self.pause_hour_button, 0, 0)
+        pause_row.addWidget(self.pause_today_button, 0, 1)
+        pause_row.addWidget(self.resume_button, 1, 0, 1, 2)
+        pause_row.setColumnStretch(0, 1)
+        pause_row.setColumnStretch(1, 1)
         rotation_layout.addLayout(pause_row)
-        layout.addWidget(rotation_card)
-        layout.addStretch()
+        content_layout.addWidget(rotation_card)
+        content_layout.addStretch()
+        layout.addWidget(self._scroll_page(content), 1)
 
         save_row = QHBoxLayout()
         save_row.addStretch()
@@ -384,24 +417,28 @@ class SettingsWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 8, 0, 0)
         layout.setSpacing(14)
+        content = QWidget(objectName="ScrollContent")
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(14)
         preferences_card, preferences_layout = self._card(self.translator("settings"))
         form = QFormLayout()
         form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         form.setHorizontalSpacing(28)
         form.setVerticalSpacing(11)
         self.theme_combo = self._combo(["system", "dark", "light"])
-        self.language_combo = QComboBox()
+        self.language_combo = RoundedComboBox()
         self.language_combo.addItem("English", "en")
         self.language_combo.addItem("বাংলা", "bn")
         self.notifications_enabled = QCheckBox(self.translator("notifications"))
         self.derive_accent = QCheckBox(self.translator("dynamic_accent"))
-        self.cache_spin = QSpinBox()
+        self.cache_spin = RoundedSpinBox()
         self.cache_spin.setRange(64, 10_240)
         self.cache_spin.setSuffix(" MB")
-        self.download_spin = QSpinBox()
+        self.download_spin = RoundedSpinBox()
         self.download_spin.setRange(5, 500)
         self.download_spin.setSuffix(" MB")
-        self.history_spin = QSpinBox()
+        self.history_spin = RoundedSpinBox()
         self.history_spin.setRange(20, 10_000)
         self.update_checks = QCheckBox(self.translator("automatic_updates"))
         self.source_mode_combo = self._combo(["hybrid", "api", "index"])
@@ -415,7 +452,7 @@ class SettingsWindow(QMainWindow):
         form.addRow(self.translator("check_updates"), self.update_checks)
         form.addRow(self.translator("source_mode"), self.source_mode_combo)
         preferences_layout.addLayout(form)
-        layout.addWidget(preferences_card)
+        content_layout.addWidget(preferences_card)
 
         tools_card, tools_layout = self._card(self.translator("support_diagnostics"))
         tools = QGridLayout()
@@ -426,28 +463,28 @@ class SettingsWindow(QMainWindow):
         self.open_logs_button = self._button(self.translator("open_logs"))
         self.diagnostics_button = self._button(self.translator("diagnostics"))
         self.update_button = self._button(self.translator("check_updates"))
-        for index, button in enumerate(
-            (
-                self.connection_button,
-                self.open_folder_button,
-                self.open_logs_button,
-                self.diagnostics_button,
-                self.update_button,
-            )
-        ):
-            tools.addWidget(button, index // 3, index % 3)
-        tools.setColumnStretch(2, 1)
+        tools.addWidget(self.connection_button, 0, 0)
+        tools.addWidget(self.open_folder_button, 0, 1)
+        tools.addWidget(self.open_logs_button, 1, 0)
+        tools.addWidget(self.diagnostics_button, 1, 1)
+        tools.addWidget(self.update_button, 2, 0, 1, 2)
+        tools.setColumnStretch(0, 1)
+        tools.setColumnStretch(1, 1)
         tools_layout.addLayout(tools)
-        layout.addWidget(tools_card)
-        layout.addStretch()
+        content_layout.addWidget(tools_card)
+        content_layout.addStretch()
+        layout.addWidget(self._scroll_page(content), 1)
 
         save_row = QHBoxLayout()
+        self.reset_button = self._button(self.translator("reset_settings"), "Danger")
+        save_row.addWidget(self.reset_button)
         save_row.addStretch()
         self.save_button = self._button(self.translator("save"), "Primary", "Ctrl+S")
         save_row.addWidget(self.save_button)
         layout.addLayout(save_row)
 
         self.save_button.clicked.connect(self.save_settings)
+        self.reset_button.clicked.connect(self.reset_all_settings)
         self.connection_button.clicked.connect(self.test_connection)
         self.open_folder_button.clicked.connect(self.open_wallpaper_folder)
         self.open_logs_button.clicked.connect(self.open_log_folder)
@@ -532,6 +569,7 @@ class SettingsWindow(QMainWindow):
         self.translator.set_language(saved.language)
         self._apply_style()
         self._update_next_change()
+        self._pending_settings_message = self.translator("saved")
         self.settings_saved.emit(saved)
         self._set_save_busy(True)
         worker = FunctionWorker(self._apply_system_integrations, saved)
@@ -565,7 +603,7 @@ class SettingsWindow(QMainWindow):
         if errors:
             QMessageBox.warning(self, self.translator("app_name"), "\n".join(errors))
         else:
-            self.status.showMessage(self.translator("saved"), 5000)
+            self.status.showMessage(self._pending_settings_message or self.translator("saved"), 5000)
 
     def _settings_integrations_failed(self, message: str) -> None:
         self._set_save_busy(False)
@@ -574,7 +612,32 @@ class SettingsWindow(QMainWindow):
     def _set_save_busy(self, busy: bool) -> None:
         self.save_button.setEnabled(not busy)
         self.automation_save_button.setEnabled(not busy)
-        self._set_progress("settings", busy, self.translator("saved") if not busy else "")
+        self.reset_button.setEnabled(not busy)
+        self._set_progress("settings", busy)
+
+    def reset_all_settings(self) -> None:
+        choice = QMessageBox.question(
+            self,
+            self.translator("reset_settings"),
+            self.translator("reset_confirm"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            return
+        saved = self.services.settings_store.save(AppSettings())
+        self.services.downloader.max_bytes = saved.max_download_mb * 1024 * 1024
+        self.translator.set_language(saved.language)
+        self._load_settings()
+        self._apply_style()
+        self._update_next_change()
+        self._pending_settings_message = self.translator("reset_done")
+        self.settings_saved.emit(saved)
+        self._set_save_busy(True)
+        worker = FunctionWorker(self._apply_system_integrations, saved)
+        worker.signals.finished.connect(self._settings_integrations_finished)
+        worker.signals.failed.connect(self._settings_integrations_failed)
+        self._start_worker(worker)
 
     def change_now(self, wallpaper: Wallpaper | None = None) -> None:
         self._set_wallpaper_busy(True, self.translator("loading"))
@@ -726,6 +789,9 @@ class SettingsWindow(QMainWindow):
         )
 
     def refresh_home(self) -> None:
+        settings = self.services.settings_store.settings
+        if self._applied_accent != settings.accent_color:
+            self._apply_style()
         latest = self.services.history.last_successful()
         path: Path | None = None
         if latest and latest.local_path:
@@ -920,13 +986,20 @@ class SettingsWindow(QMainWindow):
             scheme = QGuiApplication.styleHints().colorScheme()
             theme = "dark" if scheme == Qt.ColorScheme.Dark else "light"
         self.setStyleSheet(stylesheet(theme, settings.accent_color))
+        colors = theme_colors(theme, settings.accent_color)
+        for widget_type in (RoundedPanel, RoundedLabel, AnimatedButton, RoundedComboBox, RoundedSpinBox):
+            for widget in self.findChildren(widget_type):
+                widget.set_theme(colors)
+        self.catalog_delegate.set_theme(colors)
+        self._applied_accent = settings.accent_color
 
     def _preview_theme(self, *_args: object) -> None:
         self._apply_style()
 
     @staticmethod
-    def _card(title: str) -> tuple[QFrame, QVBoxLayout]:
-        frame = QFrame(objectName="Card")
+    def _card(title: str) -> tuple[RoundedPanel, QVBoxLayout]:
+        frame = RoundedPanel(radius=16, role="surface", spotlight=True)
+        frame.setObjectName("Card")
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(11)
@@ -934,8 +1007,23 @@ class SettingsWindow(QMainWindow):
         return frame, layout
 
     @staticmethod
-    def _button(text: str, object_name: str = "", shortcut: str = "") -> QPushButton:
-        button = QPushButton(text)
+    def _scroll_page(content: QWidget) -> QScrollArea:
+        """Keep dense pages usable at compact heights instead of squeezing their controls."""
+        content.setMinimumHeight(content.minimumSizeHint().height())
+        content.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Minimum)
+        scroll = QScrollArea(objectName="PageScroll")
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setWidget(content)
+        scroll.viewport().setAutoFillBackground(False)
+        return scroll
+
+    @staticmethod
+    def _button(text: str, object_name: str = "", shortcut: str = "") -> AnimatedButton:
+        role = object_name.lower() if object_name else "default"
+        button = AnimatedButton(text, role=role)
         if object_name:
             button.setObjectName(object_name)
         if shortcut:
@@ -945,7 +1033,7 @@ class SettingsWindow(QMainWindow):
         return button
 
     def _combo(self, values: list[str]) -> QComboBox:
-        combo = QComboBox()
+        combo = RoundedComboBox()
         for value in values:
             translated = self.translator(value)
             combo.addItem(translated.title() if translated == value else translated, value)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from itertools import combinations
 from pathlib import Path
 
 import pytest
@@ -8,9 +9,11 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 pytest.importorskip("PySide6")
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtCore import QPoint, QRect  # noqa: E402
+from PySide6.QtWidgets import QApplication, QScrollArea, QWidget  # noqa: E402
 
 from wallpaper_changer.bootstrap import AppServices, build_services  # noqa: E402
+from wallpaper_changer.config import AppSettings  # noqa: E402
 from wallpaper_changer.i18n import Translator  # noqa: E402
 from wallpaper_changer.models import ChangeResult, Wallpaper  # noqa: E402
 from wallpaper_changer.paths import get_app_paths  # noqa: E402
@@ -19,6 +22,11 @@ from wallpaper_changer.ui import settings_window as settings_window_module  # no
 from wallpaper_changer.ui import tray as tray_module  # noqa: E402
 from wallpaper_changer.ui.settings_window import SettingsWindow  # noqa: E402
 from wallpaper_changer.ui.tray import TrayController  # noqa: E402
+from wallpaper_changer.ui.widgets import (  # noqa: E402
+    AnimatedButton,
+    RoundedComboBox,
+    RoundedSpinBox,
+)
 
 
 class InlineThreadPool:
@@ -210,6 +218,195 @@ def test_navigation_and_worker_failures_restore_controls(ui, monkeypatch):
     assert window.catalog_refresh.isEnabled()
     assert "catalog failed" in window.status.currentMessage()
     assert not window.busy_bar.isVisible()
+
+
+def test_wallpaper_result_reapplies_the_derived_accent(ui):
+    _application, services, window = ui
+    assert window.change_button.colors is not None
+    previous_accent = window.change_button.colors.accent
+
+    services.settings_store.save(accent_color="#336699")
+    window._change_finished(ChangeResult(True, "Changed"))
+
+    assert previous_accent != "#336699"
+    assert window.change_button.colors is not None
+    assert window.change_button.colors.accent == "#336699"
+    assert window.preview.colors is not None
+    assert window.preview.colors.accent == "#336699"
+
+
+def test_all_translated_buttons_fit_at_the_minimum_window_size(tmp_path):
+    application = QApplication.instance() or QApplication([])
+    for language in ("en", "bn"):
+        services = build_services(get_app_paths(tmp_path / f"button-fit-{language}"))
+        services.settings_store.save(language=language)
+        window = SettingsWindow(services, Translator(language))
+        window.resize(window.minimumSize())
+        window.show()
+        application.processEvents()
+
+        for page in range(window.pages.count()):
+            window.set_page(page, animate=False)
+            window._catalog_timer.stop()
+            application.processEvents()
+            for button in window.findChildren(AnimatedButton):
+                if button.isVisibleTo(window):
+                    assert button.width() >= button.minimumSizeHint().width(), button.text()
+
+        window._clock_timer.stop()
+        window._catalog_timer.stop()
+        window.hide()
+        window.deleteLater()
+        application.processEvents()
+
+
+def test_dense_pages_scroll_without_overlapping_controls(ui):
+    application, _services, window = ui
+    window.resize(window.minimumSize())
+    window.show()
+    application.processEvents()
+
+    for page in (2, 3):
+        window.set_page(page, animate=False)
+        application.processEvents()
+        scroll = window.pages.currentWidget().findChild(QScrollArea)
+        assert scroll is not None
+        assert scroll.verticalScrollBar().maximum() > 0
+        assert scroll.widget().width() <= scroll.viewport().width()
+
+        content = scroll.widget()
+        controls = [
+            widget
+            for widget in content.findChildren(QWidget)
+            if isinstance(widget, (AnimatedButton, RoundedComboBox, RoundedSpinBox))
+        ]
+        for first, second in combinations(controls, 2):
+            first_rect = QRect(first.mapTo(content, QPoint()), first.size())
+            second_rect = QRect(second.mapTo(content, QPoint()), second.size())
+            assert not first_rect.intersects(second_rect), (first.objectName(), second.objectName())
+
+
+def test_home_controls_do_not_overlap_while_wallpaper_is_changing(ui):
+    application, _services, window = ui
+    window.show()
+    window.set_page(0, animate=False)
+
+    for width, height in ((1080, 760), (900, 640)):
+        window.resize(width, height)
+        window._set_wallpaper_busy(True, "Downloading and validating image")
+        application.processEvents()
+        assert window.busy_bar.isVisible()
+
+        controls = (
+            window.preview,
+            window.current_title,
+            window.current_meta,
+            window.change_button,
+            window.undo_button,
+            window.favorite_button,
+            window.block_button,
+        )
+        rectangles = {
+            control: QRect(control.mapTo(window, QPoint()), control.size()) for control in controls
+        }
+        for first, second in combinations(controls, 2):
+            assert not rectangles[first].intersects(rectangles[second]), (
+                first.objectName(),
+                second.objectName(),
+            )
+
+    window._set_wallpaper_busy(False, "Ready")
+
+
+def test_every_option_is_saved_filters_are_forwarded_and_reset(ui, monkeypatch):
+    _application, services, window = ui
+    captured_filters: list[dict] = []
+    monkeypatch.setattr(
+        services.wallpaper,
+        "catalog",
+        lambda **kwargs: captured_filters.append(kwargs) or [],
+    )
+    monkeypatch.setattr(
+        settings_window_module.QMessageBox,
+        "question",
+        lambda *_args, **_kwargs: settings_window_module.QMessageBox.StandardButton.Yes,
+    )
+
+    window.set_page(1)
+    window._catalog_timer.stop()
+    window.search_input.setText("aurora")
+    SettingsWindow._set_combo(window.category_combo, "anime")
+    SettingsWindow._set_combo(window.color_combo, "purple")
+    SettingsWindow._set_combo(window.orientation_combo, "mobile")
+    window.load_catalog(force=True)
+    assert captured_filters[-1] == {
+        "query": "aurora",
+        "category": "anime",
+        "color": "purple",
+        "orientation": "mobile",
+        "force_refresh": True,
+    }
+
+    SettingsWindow._set_combo(window.rotation_mode_combo, "color")
+    SettingsWindow._set_combo(window.rotation_category_combo, "anime")
+    SettingsWindow._set_combo(window.rotation_color_combo, "purple")
+    SettingsWindow._set_combo_data(window.interval_combo, 180)
+    SettingsWindow._set_combo(window.target_mode_combo, "specific")
+    window.monitor_combo.addItem("Test display", "DISPLAY-TEST")
+    SettingsWindow._set_combo_data(window.monitor_combo, "DISPLAY-TEST")
+    SettingsWindow._set_combo(window.position_combo, "fit")
+    window.rotation_enabled.setChecked(True)
+    window.startup_enabled.setChecked(True)
+    window.change_at_startup.setChecked(True)
+    window.run_on_battery.setChecked(False)
+
+    SettingsWindow._set_combo(window.theme_combo, "light")
+    SettingsWindow._set_combo_data(window.language_combo, "bn")
+    window.notifications_enabled.setChecked(False)
+    window.derive_accent.setChecked(False)
+    window.cache_spin.setValue(1024)
+    window.download_spin.setValue(45)
+    window.history_spin.setValue(777)
+    window.update_checks.setChecked(False)
+    SettingsWindow._set_combo(window.source_mode_combo, "index")
+    window.save_settings()
+
+    saved = services.settings_store.settings
+    assert saved.language == "bn"
+    assert saved.theme == "light"
+    assert saved.orientation == "mobile"
+    assert saved.category == "anime"
+    assert saved.color == "purple"
+    assert saved.rotation_mode == "color"
+    assert saved.interval_minutes == 180
+    assert saved.rotation_enabled
+    assert saved.startup_enabled
+    assert saved.change_at_startup
+    assert not saved.run_on_battery
+    assert saved.target_mode == "specific"
+    assert saved.monitor_id == "DISPLAY-TEST"
+    assert saved.wallpaper_position == "fit"
+    assert not saved.notifications_enabled
+    assert not saved.derive_accent_from_wallpaper
+    assert saved.max_cache_mb == 1024
+    assert saved.max_download_mb == 45
+    assert saved.max_history_items == 777
+    assert not saved.check_updates
+    assert saved.source_mode == "index"
+    assert services.scheduler.enabled[-1] == ((180,), {"run_on_battery": False})
+    assert services.startup.enabled
+
+    retained = Wallpaper.from_url("https://example.test/retained.jpg")
+    services.history.record(retained, local_path=None, success=True)
+    services.history.toggle_favorite(retained)
+    window.reset_button.click()
+    assert services.settings_store.settings == AppSettings()
+    assert services.scheduler.disabled >= 1
+    assert services.startup.disabled >= 1
+    assert window.translator.language == "en"
+    assert window.reset_button.isEnabled()
+    assert services.history.last_successful().wallpaper_id == retained.id
+    assert services.history.is_favorite(retained.id)
 
 
 def test_tray_menu_actions_are_wired(tmp_path, monkeypatch):
