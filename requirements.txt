@@ -1,0 +1,4 @@
+requests>=2.32.4,<3
+Pillow>=11.3,<13
+PySide6-Essentials>=6.9,<7
+comtypes>=1.4.11,<2; platform_system == "Windows"

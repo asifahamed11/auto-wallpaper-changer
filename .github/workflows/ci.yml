@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m ruff check src tests tools
+      - run: python -m pytest -m "not live" --cov=wallpaper_changer --cov-report=term-missing
+
+  build:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+      - run: python tools/build_assets.py
+      - run: python -m PyInstaller --clean --noconfirm packaging/wallpaper_changer.spec
+      - name: Sign executable when a certificate is configured
+        if: env.WINDOWS_CERTIFICATE != ''
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          & signtool.exe sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $certificatePath /p $env:WINDOWS_CERTIFICATE_PASSWORD dist\AutoWallpaperChanger.exe
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" packaging\installer.iss
+      - name: Sign installer when a certificate is configured
+        if: env.WINDOWS_CERTIFICATE != ''
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          & signtool.exe sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $certificatePath /p $env:WINDOWS_CERTIFICATE_PASSWORD release\AutoWallpaperChanger-Setup-2.0.0.exe
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          Compress-Archive -LiteralPath dist\AutoWallpaperChanger.exe,README.md,LICENSE,PRIVACY.md,THIRD_PARTY_NOTICES.md -DestinationPath dist\AutoWallpaperChanger-Portable-${{ github.ref_name }}.zip -CompressionLevel Optimal
+          $hash = Get-FileHash dist\AutoWallpaperChanger.exe -Algorithm SHA256
+          $zipHash = Get-FileHash dist\AutoWallpaperChanger-Portable-${{ github.ref_name }}.zip -Algorithm SHA256
+          $setupHash = Get-FileHash release\AutoWallpaperChanger-Setup-2.0.0.exe -Algorithm SHA256
+          [IO.File]::WriteAllText('dist\SHA256SUMS.txt', "$($hash.Hash.ToLowerInvariant())  AutoWallpaperChanger.exe`r`n$($zipHash.Hash.ToLowerInvariant())  AutoWallpaperChanger-Portable-${{ github.ref_name }}.zip`r`n$($setupHash.Hash.ToLowerInvariant())  AutoWallpaperChanger-Setup-2.0.0.exe`r`n")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AutoWallpaperChanger-${{ github.ref_name }}
+          path: |
+            dist/AutoWallpaperChanger.exe
+            dist/AutoWallpaperChanger-Portable-${{ github.ref_name }}.zip
+            dist/SHA256SUMS.txt
+            release/AutoWallpaperChanger-Setup-2.0.0.exe
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            dist/AutoWallpaperChanger.exe
+            dist/AutoWallpaperChanger-Portable-${{ github.ref_name }}.zip
+            dist/SHA256SUMS.txt
+            release/AutoWallpaperChanger-Setup-2.0.0.exe
